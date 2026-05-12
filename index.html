@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexAuth — Full Stack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0a0a0f; --surface:#111118; --surface2:#18181f;
+      --border:rgba(255,255,255,0.08); --border-active:rgba(139,92,246,0.6);
+      --accent:#8b5cf6; --accent2:#06b6d4; --text:#f1f0f5; --muted:#6b6880;
+      --danger:#ef4444; --success:#10b981; --glow:rgba(139,92,246,0.15);
+    }
+    html,body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; overflow:hidden; }
+    .bg-canvas { position:fixed; inset:0; z-index:0; overflow:hidden; }
+    .orb { position:absolute; border-radius:50%; filter:blur(80px); opacity:0.22; animation:drift 12s ease-in-out infinite alternate; }
+    .orb-1 { width:500px;height:500px;background:#8b5cf6;top:-150px;left:-100px;animation-delay:0s; }
+    .orb-2 { width:400px;height:400px;background:#06b6d4;bottom:-100px;right:-80px;animation-delay:-4s; }
+    .orb-3 { width:300px;height:300px;background:#f59e0b;top:40%;left:60%;animation-delay:-8s;opacity:0.1; }
+    @keyframes drift { from{transform:translate(0,0) scale(1)} to{transform:translate(40px,30px) scale(1.08)} }
+    .grid-lines { position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:50px 50px; }
+    .app { position:relative;z-index:1;height:100vh;display:flex;align-items:center;justify-content:center; }
+    .card { width:100%;max-width:430px;background:rgba(17,17,24,.88);backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:24px;padding:40px 36px;box-shadow:0 32px 80px rgba(0,0,0,.5);animation:cardIn .5s cubic-bezier(.34,1.56,.64,1) both; }
+    @keyframes cardIn { from{opacity:0;transform:translateY(30px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+    .brand { display:flex;align-items:center;gap:10px;margin-bottom:28px; }
+    .brand-icon { width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:18px; }
+    .brand-name { font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.5px; }
+    .brand-name span { color:var(--accent); }
+    .tabs { display:flex;gap:4px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:24px; }
+    .tab { flex:1;padding:9px;border:none;background:transparent;color:var(--muted);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s; }
+    .tab.active { background:var(--surface);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    .section-title { font-family:'Syne',sans-serif;font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px; }
+    .section-sub { font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:300; }
+    .field { margin-bottom:14px; }
+    .field label { display:block;font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px; }
+    .input-wrap { position:relative; }
+    .input-wrap .icon { position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;opacity:.45; }
+    .input-wrap input { width:100%;padding:11px 40px 11px 38px;background:var(--surface2);border:1px solid var(--border);border-radius:11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s; }
+    .input-wrap input:focus { border-color:var(--border-active);box-shadow:0 0 0 3px var(--glow); }
+    .input-wrap input.error { border-color:var(--danger); }
+    .input-wrap .toggle-pw { position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:var(--muted);padding:2px; }
+    .field-error { font-size:11px;color:var(--danger);margin-top:5px;display:none; }
+    .role-group { display:flex;gap:8px;margin-top:6px; }
+    .role-btn { flex:1;padding:9px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;text-align:center; }
+    .role-btn.selected { background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.5);color:#c4b5fd; }
+    .strength-bar { display:flex;gap:4px;margin-top:8px; }
+    .strength-seg { flex:1;height:3px;border-radius:99px;background:var(--surface2);transition:background .3s; }
+    .strength-label { font-size:11px;color:var(--muted);margin-top:4px; }
+    .btn-primary { width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),#7c3aed);border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px; }
+    .btn-primary:hover:not(:disabled) { transform:translateY(-1px);box-shadow:0 8px 24px rgba(139,92,246,.4); }
+    .btn-primary:disabled { opacity:.6;cursor:not-allowed; }
+    .spinner { width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .toast { position:fixed;top:24px;right:24px;z-index:100;padding:14px 20px;border-radius:12px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;transform:translateX(120%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-width:320px;pointer-events:none; }
+    .toast.show { transform:translateX(0); }
+    .toast.success { background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7; }
+    .toast.error   { background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5; }
+    .toast.info    { background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#c4b5fd; }
+    .toast.warning { background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#fcd34d; }
+    .dashboard { display:none; }
+    .dash-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:20px; }
+    .dash-title { font-family:'Syne',sans-serif;font-size:20px;font-weight:700; }
+    .badge { padding:4px 10px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase; }
+    .badge-admin  { background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.3); }
+    .badge-user   { background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.3); }
+    .badge-mod    { background:rgba(139,92,246,.15);color:#c4b5fd;border:1px solid rgba(139,92,246,.3); }
+    .dash-cards { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px; }
+    .dash-card { background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px; }
+    .dash-card .dc-label { font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em; }
+    .dash-card .dc-val { font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-top:4px; }
+    .dash-card .dc-val.green { color:var(--success); }
+    .dash-card .dc-val.purple { color:var(--accent); }
+    .protected-box { background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:14px;font-size:13px;color:#6ee7b7;margin-bottom:14px;line-height:1.6; }
+    .users-table { background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;display:none; }
+    .users-table table { width:100%;border-collapse:collapse;font-size:12px; }
+    .users-table th { padding:10px 12px;text-align:left;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em; }
+    .users-table td { padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04); }
+    .users-table tr:last-child td { border-bottom:none; }
+    .btn-logout { width:100%;padding:11px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:11px;color:#fca5a5;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s; }
+    .btn-logout:hover { background:rgba(239,68,68,.18); }
+    .btn-sm { padding:5px 10px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .2s; }
+    .btn-sm.red { background:rgba(239,68,68,.15);color:#fca5a5; }
+    .btn-sm.red:hover { background:rgba(239,68,68,.3); }
+    .user-info-row { display:flex;align-items:center;gap:12px;margin-bottom:16px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px; }
+    .avatar { width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;flex-shrink:0; }
+    .u-name { font-weight:600;font-size:14px; }
+    .u-email { font-size:12px;color:var(--muted);margin-top:2px; }
+    .forgot-link { font-size:12px;color:var(--muted);text-align:right;margin-top:-8px;margin-bottom:14px;cursor:pointer;transition:color .2s; }
+    .forgot-link:hover { color:var(--accent); }
+    .panel { animation:fadeUp .3s ease both; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    .api-tag { font-size:10px;background:rgba(6,182,212,.12);color:#67e8f9;border:1px solid rgba(6,182,212,.2);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:4px; }
+    .demo-hint { font-size:11px;color:var(--muted);line-height:1.7;text-align:center;margin-top:10px; }
+    .divider { display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--muted);font-size:12px; }
+    .divider::before,.divider::after { content:'';flex:1;height:1px;background:var(--border); }
+  </style>
+</head>
+<body>
+<div class="bg-canvas">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+<div class="grid-lines"></div>
+
+<div class="app">
+  <div class="card">
+    <div class="toast" id="toast"></div>
+
+    <!-- Auth -->
+    <div id="authSection">
+      <div class="brand">
+        <div class="brand-icon">🔐</div>
+        <div class="brand-name">Nex<span>Auth</span> <span class="api-tag">LIVE API</span></div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('login')">Sign In</button>
+        <button class="tab" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="loginPanel" class="panel">
+        <div class="section-title">Welcome back</div>
+        <div class="section-sub">Signing in against the real Express backend</div>
+        <div class="field">
+          <label>Email</label>
+          <div class="input-wrap"><span class="icon">✉</span>
+            <input type="email" id="loginEmail" placeholder="you@example.com"/>
+          </div>
+          <div class="field-error" id="loginEmailErr">Valid email required</div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap"><span class="icon">🔒</span>
+            <input type="password" id="loginPass" placeholder="Your password"/>
+            <button class="toggle-pw" onclick="togglePw('loginPass',this)">👁</button>
+          </div>
+          <div class="field-error" id="loginPassErr">Password required</div>
+        </div>
+        <div class="forgot-link">Forgot password?</div>
+        <button class="btn-primary" id="loginBtn" onclick="handleLogin()">
+          <div class="spinner" id="loginSpinner"></div>
+          <span id="loginBtnText">Sign In</span>
+        </button>
+        <div class="divider">demo credentials</div>
+        <div class="demo-hint">
+          admin@nexauth.com / Admin@123<br>
+          mod@nexauth.com / Mod@1234<br>
+          user@nexauth.com / User@123
+        </div>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="registerPanel" class="panel" style="display:none">
+        <div class="section-title">Create account</div>
+        <div class="section-sub">Data saved to the Express server</div>
+        <div class="field">
+          <label>Full Name</label>
+          <div class="input-wrap"><span class="icon">👤</span>
+            <input type="text" id="regName" placeholder="Jane Doe"/>
+          </div>
+          <div class="field-error" id="regNameErr">Min 2 characters</div>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <div class="input-wrap"><span class="icon">✉</span>
+            <input type="email" id="regEmail" placeholder="you@example.com"/>
+          </div>
+          <div class="field-error" id="regEmailErr">Valid email required</div>
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <div class="role-group">
+            <div class="role-btn selected" data-role="user" onclick="selectRole(this)">👤 User</div>
+            <div class="role-btn" data-role="moderator" onclick="selectRole(this)">🛡 Mod</div>
+            <div class="role-btn" data-role="admin" onclick="selectRole(this)">⚡ Admin</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap"><span class="icon">🔒</span>
+            <input type="password" id="regPass" placeholder="Strong password" oninput="checkStrength(this.value)"/>
+            <button class="toggle-pw" onclick="togglePw('regPass',this)">👁</button>
+          </div>
+          <div class="strength-bar">
+            <div class="strength-seg" id="s1"></div><div class="strength-seg" id="s2"></div>
+            <div class="strength-seg" id="s3"></div><div class="strength-seg" id="s4"></div>
+          </div>
+          <div class="strength-label" id="strengthLabel"></div>
+          <div class="field-error" id="regPassErr">8+ chars, uppercase, number & symbol</div>
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <div class="input-wrap"><span class="icon">🔒</span>
+            <input type="password" id="regConfirm" placeholder="Repeat password"/>
+            <button class="toggle-pw" onclick="togglePw('regConfirm',this)">👁</button>
+          </div>
+          <div class="field-error" id="regConfirmErr">Passwords don't match</div>
+        </div>
+        <button class="btn-primary" id="regBtn" onclick="handleRegister()">
+          <div class="spinner" id="regSpinner"></div>
+          <span id="regBtnText">Create Account</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashSection" class="dashboard panel">
+      <div class="dash-header">
+        <div class="dash-title">Dashboard</div>
+        <div class="badge" id="roleBadge"></div>
+      </div>
+      <div class="user-info-row">
+        <div class="avatar" id="userAvatar"></div>
+        <div>
+          <div class="u-name" id="userName"></div>
+          <div class="u-email" id="userEmail"></div>
+        </div>
+      </div>
+      <div class="protected-box" id="protectedMsg"></div>
+      <div class="dash-cards">
+        <div class="dash-card"><div class="dc-label">Status</div><div class="dc-val green">Authenticated</div></div>
+        <div class="dash-card"><div class="dc-label">Token</div><div class="dc-val purple">JWT ✓</div></div>
+        <div class="dash-card"><div class="dc-label">Permissions</div><div class="dc-val" style="font-size:13px" id="userPerms"></div></div>
+        <div class="dash-card"><div class="dc-label">Hashing</div><div class="dc-val" style="font-size:13px">bcrypt</div></div>
+      </div>
+      <!-- Users table (mod + admin) -->
+      <div class="users-table" id="usersTable">
+        <table>
+          <thead><tr><th>Name</th><th>Role</th><th>Action</th></tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+      <button class="btn-logout" onclick="handleLogout()">⏻ &nbsp;Sign Out</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = ''; // same origin — change to 'http://localhost:3000' if serving separately
+let accessToken = null;
+
+// ── API helper ──
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + path, {
+    credentials: 'include', // send HTTP-only cookies automatically
+    headers: { 'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ── Auto-refresh access token before it expires ──
+function scheduleRefresh(ms) {
+  setTimeout(async () => {
+    try {
+      const d = await apiFetch('/api/auth/refresh', { method: 'POST' });
+      accessToken = d.accessToken;
+      scheduleRefresh(14 * 60 * 1000); // refresh again in 14 min
+    } catch { handleLogout(); showToast('Session expired, please log in again', 'warning'); }
+  }, ms);
+}
+
+// ── Tab ──
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',(i===0&&t==='login')||(i===1&&t==='register')));
+  document.getElementById('loginPanel').style.display    = t==='login'    ? 'block' : 'none';
+  document.getElementById('registerPanel').style.display = t==='register' ? 'block' : 'none';
+}
+
+// ── Validation helpers ──
+function showErr(id, v) { document.getElementById(id).style.display = v ? 'block' : 'none'; }
+function setErr(id, v)  { document.getElementById(id).classList.toggle('error', v); }
+const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const strongPw = p => p.length>=8 && /[A-Z]/.test(p) && /[0-9]/.test(p) && /[^a-zA-Z0-9]/.test(p);
+
+function checkStrength(pw) {
+  const segs=[document.getElementById('s1'),document.getElementById('s2'),document.getElementById('s3'),document.getElementById('s4')];
+  const lbl=document.getElementById('strengthLabel');
+  const colors=['#ef4444','#f59e0b','#06b6d4','#10b981'];
+  const labels=['Weak','Fair','Good','Strong'];
+  let s=0;
+  if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^a-zA-Z0-9]/.test(pw))s++;
+  segs.forEach((seg,i)=>seg.style.background=i<s?colors[s-1]:'var(--surface2)');
+  lbl.textContent=pw.length?labels[s-1]||'':'';
+  lbl.style.color=s>0?colors[s-1]:'var(--muted)';
+}
+
+function togglePw(id, btn) {
+  const inp=document.getElementById(id);
+  inp.type=inp.type==='password'?'text':'password';
+  btn.textContent=inp.type==='password'?'👁':'🙈';
+}
+
+let selectedRole='user';
+function selectRole(el) {
+  document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected'); selectedRole=el.dataset.role;
+}
+
+let toastTimer;
+function showToast(msg, type='info') {
+  const t=document.getElementById('toast');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span>${type==='success'?'✓':type==='error'?'✕':type==='warning'?'⚠':'ℹ'}</span> ${msg}`;
+  t.classList.add('show'); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3800);
+}
+
+function setLoading(btnId, spinnerId, textId, loading) {
+  document.getElementById(spinnerId).style.display = loading ? 'block' : 'none';
+  document.getElementById(textId).style.display    = loading ? 'none'  : 'inline';
+  document.getElementById(btnId).disabled = loading;
+}
+
+// ── Login ──
+async function handleLogin() {
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  let ok=true;
+  if(!emailRx.test(email)){showErr('loginEmailErr',true);setErr('loginEmail',true);ok=false;}else{showErr('loginEmailErr',false);setErr('loginEmail',false);}
+  if(!pass){showErr('loginPassErr',true);setErr('loginPass',true);ok=false;}else{showErr('loginPassErr',false);setErr('loginPass',false);}
+  if(!ok)return;
+  setLoading('loginBtn','loginSpinner','loginBtnText',true);
+  try {
+    const d=await apiFetch('/api/auth/login',{method:'POST',body:{email,password:pass}});
+    accessToken=d.accessToken;
+    scheduleRefresh(14*60*1000);
+    await showDashboard(d.user);
+    showToast('Welcome back, '+d.user.name.split(' ')[0]+'!','success');
+  } catch(e) {
+    showToast(e.message,'error');
+    setErr('loginPass',true);
+  } finally { setLoading('loginBtn','loginSpinner','loginBtnText',false); }
+}
+
+// ── Register ──
+async function handleRegister() {
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pass=document.getElementById('regPass').value;
+  const confirm=document.getElementById('regConfirm').value;
+  let ok=true;
+  if(name.length<2){showErr('regNameErr',true);setErr('regName',true);ok=false;}else{showErr('regNameErr',false);setErr('regName',false);}
+  if(!emailRx.test(email)){showErr('regEmailErr',true);setErr('regEmail',true);ok=false;}else{showErr('regEmailErr',false);setErr('regEmail',false);}
+  if(!strongPw(pass)){showErr('regPassErr',true);setErr('regPass',true);ok=false;}else{showErr('regPassErr',false);setErr('regPass',false);}
+  if(pass!==confirm){showErr('regConfirmErr',true);setErr('regConfirm',true);ok=false;}else{showErr('regConfirmErr',false);setErr('regConfirm',false);}
+  if(!ok)return;
+  setLoading('regBtn','regSpinner','regBtnText',true);
+  try {
+    const d=await apiFetch('/api/auth/register',{method:'POST',body:{name,email,password:pass,role:selectedRole}});
+    accessToken=d.accessToken;
+    scheduleRefresh(14*60*1000);
+    await showDashboard(d.user);
+    showToast('Account created! Welcome, '+d.user.name.split(' ')[0]+'!','success');
+  } catch(e) {
+    showToast(e.message,'error');
+  } finally { setLoading('regBtn','regSpinner','regBtnText',false); }
+}
+
+const rolePerms = { admin:'✦ Full Access', moderator:'✦ Moderate', user:'✦ Read/Write' };
+const roleBadgeClass = { admin:'badge-admin', moderator:'badge-mod', user:'badge-user' };
+
+async function showDashboard(user) {
+  document.getElementById('authSection').style.display='none';
+  const dash=document.getElementById('dashSection');
+  dash.style.display='block';
+  const initials=user.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('userAvatar').textContent=initials;
+  document.getElementById('userName').textContent=user.name;
+  document.getElementById('userEmail').textContent=user.email;
+  document.getElementById('userPerms').textContent=rolePerms[user.role];
+  const badge=document.getElementById('roleBadge');
+  badge.textContent=user.role.charAt(0).toUpperCase()+user.role.slice(1);
+  badge.className='badge '+roleBadgeClass[user.role];
+  document.getElementById('protectedMsg').innerHTML=
+    `🔒 <strong>Protected Route</strong> — Verified via JWT from HTTP-only cookie. Role: <strong>${user.role}</strong>. Token auto-refreshes every 14 min.`;
+
+  // Load users list for admin/moderator
+  if(user.role==='admin'||user.role==='moderator') {
+    try {
+      const d=await apiFetch('/api/users');
+      const tbody=document.getElementById('usersBody');
+      tbody.innerHTML=d.users.map(u=>`
+        <tr>
+          <td>${u.name}</td>
+          <td><span class="badge ${roleBadgeClass[u.role]}" style="font-size:10px">${u.role}</span></td>
+          <td>${user.role==='admin'&&u.id!==user.id?`<button class="btn-sm red" onclick="deleteUser('${u.id}')">Delete</button>`:'-'}</td>
+        </tr>`).join('');
+      document.getElementById('usersTable').style.display='block';
+    } catch(e) { console.error(e); }
+  }
+}
+
+async function deleteUser(id) {
+  if(!confirm('Delete this user?')) return;
+  try {
+    await apiFetch(`/api/users/${id}`,{method:'DELETE'});
+    showToast('User deleted','success');
+    // Refresh user list
+    const d=await apiFetch('/api/me');
+    await showDashboard(d);
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+async function handleLogout() {
+  try { await apiFetch('/api/auth/logout',{method:'POST'}); } catch {}
+  accessToken=null;
+  document.getElementById('dashSection').style.display='none';
+  document.getElementById('authSection').style.display='block';
+  document.getElementById('usersTable').style.display='none';
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginPass').value='';
+  showToast('Signed out','info');
+}
+
+// On load: try to restore session via refresh token cookie
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const d=await apiFetch('/api/auth/refresh',{method:'POST'});
+    accessToken=d.accessToken;
+    const me=await apiFetch('/api/me');
+    await showDashboard(me);
+    showToast('Session restored','info');
+    scheduleRefresh(14*60*1000);
+  } catch { /* no existing session */ }
+});
+</script>
+</body>
+</html>
